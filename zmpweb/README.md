@@ -13,7 +13,7 @@ Funkcja oznaczona * działa tylko dla zarejestrowanych i zalogowanych użytkowni
 #### Technikalia.
 
 Napisana w VUE.JS, tailwind. Ma być podpięta pod jedno wspólne dla pozostałych aplikacji API.
-
+Musi być autoryzacja JWT, aplikacja rzecz jasna w stylu SPA
 
 
 

@@ -1,5 +1,19 @@
-# Vue 3 + Vite
+#### Co zawiera webówka
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+1. Aplikacja webowa spełniać będzie rolę interaktywnego katalogu, który umożliwi użytkownikowi przede wszystkim przegląd zasobów biblioteki i wypożyczenie
+   książki.
+2. Przegląd dostępnych i niedostępnych pozycji
+3. login i rejestracja
+4. rezerwacja*
+5. Opcja oczekiwania na niedostępną pozycję – system wyśle powiadomienie realtime, gdy stanie
+   się dostępna*
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+Funkcja oznaczona * działa tylko dla zarejestrowanych i zalogowanych użytkowników.
+
+#### Technikalia.
+
+Napisana w VUE.JS, tailwind. Ma być podpięta pod jedno wspólne dla pozostałych aplikacji API.
+
+
+
+

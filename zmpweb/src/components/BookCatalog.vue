@@ -1,10 +1,13 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 
 const props = defineProps({
   currentUser: Object,
-  token: String
+  token: String,
+  refreshTrigger: Number
 })
+
+const emit = defineEmits(['session-expired'])
 
 const books = ref([])
 const myReservations = ref([])
@@ -12,6 +15,14 @@ const isLoading = ref(true)
 const actionMessage = ref('')
 
 const API_BASE = 'http://localhost:5228'
+
+const checkResponseStatus = (res) => {
+  if (res.status === 401) {
+    emit('session-expired')
+    throw new Error('Twoja sesja wygasła. Zaloguj się ponownie.')
+  }
+  return res
+}
 
 const fetchBooks = async () => {
   try {
@@ -30,6 +41,7 @@ const fetchReservations = async () => {
     const res = await fetch(`${API_BASE}/api/reservations`, {
       headers: { Authorization: `Bearer ${props.token}` }
     })
+    checkResponseStatus(res)
     if (res.ok) {
       myReservations.value = await res.json()
     }
@@ -45,6 +57,7 @@ const reserveBook = async (bookId) => {
       method: 'POST',
       headers: { Authorization: `Bearer ${props.token}` }
     })
+    checkResponseStatus(res)
     const data = await res.json()
 
     if (!res.ok) throw new Error(data.message || 'Nie udało się zarezerwować książki.')
@@ -63,6 +76,7 @@ const checkoutBook = async (bookId) => {
       method: 'POST',
       headers: { Authorization: `Bearer ${props.token}` }
     })
+    checkResponseStatus(res)
     const data = await res.json()
 
     if (!res.ok) throw new Error(data.message || 'Nie udało się wypożyczyć.')
@@ -75,8 +89,31 @@ const checkoutBook = async (bookId) => {
 }
 
 const isReservedByMe = (bookId) => {
-  return myReservations.value.some(r => r.book.id === bookId)
+  if (!myReservations.value || !Array.isArray(myReservations.value)) return false
+  return myReservations.value.some(r => r.book && r.book.id === bookId)
 }
+
+// Reagowanie na zmianę lub załadowanie tokenu (np. przy odświeżeniu strony)
+watch(
+  () => props.token,
+  (newToken) => {
+    if (newToken) {
+      fetchReservations()
+    } else {
+      myReservations.value = []
+    }
+  },
+  { immediate: true }
+)
+
+// Reagowanie na sygnał odświeżenia w czasie rzeczywistym z SignalR
+watch(
+  () => props.refreshTrigger,
+  () => {
+    fetchBooks()
+    fetchReservations()
+  }
+)
 
 onMounted(() => {
   fetchBooks()

@@ -9,17 +9,77 @@ const currentView = ref('catalog') // 'catalog' | 'login' | 'register'
 const currentUser = ref(null)
 const token = ref('')
 const notifications = ref([])
+const catalogRefreshTrigger = ref(0)
 
 const API_BASE = 'http://localhost:5228'
+let logoutTimer = null
+
+const triggerCatalogRefresh = () => {
+  catalogRefreshTrigger.value++
+}
+
+// Pomocnicza funkcja dekodująca znacznik exp z tokena JWT
+const getJwtExpiration = (tokenString) => {
+  try {
+    if (!tokenString) return null
+    const parts = tokenString.split('.')
+    if (parts.length !== 3) return null
+    const base64Url = parts[1]
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    )
+    const payload = JSON.parse(jsonPayload)
+    return payload.exp ? payload.exp * 1000 : null
+  } catch (e) {
+    return null
+  }
+}
+
+// Planowanie automatycznego wylogowania po wygaśnięciu tokena JWT
+const scheduleAutoLogout = (tokenValue) => {
+  if (logoutTimer) {
+    clearTimeout(logoutTimer)
+    logoutTimer = null
+  }
+
+  if (!tokenValue) return
+
+  const expTime = getJwtExpiration(tokenValue)
+  if (!expTime) return
+
+  const remaining = expTime - Date.now()
+
+  if (remaining <= 0) {
+    handleSessionExpired()
+  } else {
+    logoutTimer = setTimeout(() => {
+      handleSessionExpired()
+    }, remaining)
+  }
+}
+
+const handleSessionExpired = () => {
+  notifications.value.unshift('⏰ Twoja sesja wygasła (token JWT stracił ważność). Zaloguj się ponownie.')
+  logout()
+}
 
 const handleLoginSuccess = (userData) => {
   currentUser.value = userData
   token.value = userData.token
   currentView.value = 'catalog'
+  scheduleAutoLogout(userData.token)
   setupSignalR()
 }
 
 const logout = () => {
+  if (logoutTimer) {
+    clearTimeout(logoutTimer)
+    logoutTimer = null
+  }
   localStorage.removeItem('jwt_token')
   localStorage.removeItem('user')
   currentUser.value = null
@@ -35,9 +95,21 @@ const setupSignalR = () => {
       .configureLogging(signalR.LogLevel.Information)
       .build()
 
-  // Odbieranie powiadomienia o zwolnieniu rezerwacji (zgodne z backendowym SendBookAvailableNotificationAsync)
+  // Odbieranie powiadomień indywidualnych (np. zwolnienie rezerwacji dla danej osoby)
   connection.on('BookAvailable', (data) => {
     notifications.value.unshift(data.message)
+    triggerCatalogRefresh()
+  })
+
+  // Odbieranie powiadomień ogólnych
+  connection.on('ReceiveNotification', (message) => {
+    notifications.value.unshift(message)
+    triggerCatalogRefresh()
+  })
+
+  // Odbieranie sygnału aktualizacji katalogu w czasie rzeczywistym
+  connection.on('CatalogUpdated', () => {
+    triggerCatalogRefresh()
   })
 
   connection.start().catch(err => console.error('Błąd połączenia SignalR:', err))
@@ -49,6 +121,7 @@ onMounted(() => {
   if (savedToken && savedUser) {
     token.value = savedToken
     currentUser.value = JSON.parse(savedUser)
+    scheduleAutoLogout(savedToken)
     setupSignalR()
   }
 })
@@ -95,7 +168,13 @@ onMounted(() => {
 
     <!-- Główna zawartość -->
     <main>
-      <BookCatalog v-if="currentView === 'catalog'" :currentUser="currentUser" :token="token" />
+      <BookCatalog 
+        v-if="currentView === 'catalog'" 
+        :currentUser="currentUser" 
+        :token="token" 
+        :refreshTrigger="catalogRefreshTrigger"
+        @session-expired="handleSessionExpired" 
+      />
       <Login v-else-if="currentView === 'login'" @login-success="handleLoginSuccess" @switch-to-register="currentView = 'register'" />
       <Register v-else-if="currentView === 'register'" @switch-to-login="currentView = 'login'" />
     </main>

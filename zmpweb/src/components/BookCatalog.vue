@@ -11,6 +11,7 @@ const emit = defineEmits(['session-expired'])
 
 const books = ref([])
 const myReservations = ref([])
+const myActiveLoans = ref([])
 const isLoading = ref(true)
 const actionMessage = ref('')
 
@@ -50,6 +51,21 @@ const fetchReservations = async () => {
   }
 }
 
+const fetchLoans = async () => {
+  if (!props.token) return
+  try {
+    const res = await fetch(`${API_BASE}/api/loans?active=true`, {
+      headers: { Authorization: `Bearer ${props.token}` }
+    })
+    checkResponseStatus(res)
+    if (res.ok) {
+      myActiveLoans.value = await res.json()
+    }
+  } catch (err) {
+    console.error('Błąd pobierania wypożyczeń:', err)
+  }
+}
+
 const reserveBook = async (bookId) => {
   actionMessage.value = ''
   try {
@@ -83,6 +99,7 @@ const checkoutBook = async (bookId) => {
 
     actionMessage.value = 'Książka została pomyślnie wypożyczona!'
     await fetchBooks()
+    await fetchLoans()
   } catch (err) {
     actionMessage.value = err.message
   }
@@ -93,14 +110,21 @@ const isReservedByMe = (bookId) => {
   return myReservations.value.some(r => r.book && r.book.id === bookId)
 }
 
+const isBorrowedByMe = (bookId) => {
+  if (!myActiveLoans.value || !Array.isArray(myActiveLoans.value)) return false
+  return myActiveLoans.value.some(l => l.book && l.book.id === bookId)
+}
+
 // Reagowanie na zmianę lub załadowanie tokenu (np. przy odświeżeniu strony)
 watch(
   () => props.token,
   (newToken) => {
     if (newToken) {
       fetchReservations()
+      fetchLoans()
     } else {
       myReservations.value = []
+      myActiveLoans.value = []
     }
   },
   { immediate: true }
@@ -112,12 +136,14 @@ watch(
   () => {
     fetchBooks()
     fetchReservations()
+    fetchLoans()
   }
 )
 
 onMounted(() => {
   fetchBooks()
   fetchReservations()
+  fetchLoans()
 })
 </script>
 
@@ -152,9 +178,12 @@ onMounted(() => {
               Wypożycz online
             </button>
 
-            <!-- Niedostępna książka -> Rezerwacja / Oczekiwanie -->
+            <!-- Niedostępna książka -> Rezerwacja / Posiadanie / Oczekiwanie -->
             <div v-else>
-              <button v-if="!isReservedByMe(book.id)" @click="reserveBook(book.id)" class="w-full py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700">
+              <div v-if="isBorrowedByMe(book.id)" class="text-center text-xs font-medium text-indigo-600 py-2 bg-indigo-50 rounded-lg">
+                📖 Masz obecnie wypożyczoną tę książkę
+              </div>
+              <button v-else-if="!isReservedByMe(book.id)" @click="reserveBook(book.id)" class="w-full py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700">
                 Oczekuj na książkę (Dołącz do kolejki)
               </button>
               <div v-else class="text-center text-xs font-medium text-amber-600 py-2 bg-amber-50 rounded-lg">

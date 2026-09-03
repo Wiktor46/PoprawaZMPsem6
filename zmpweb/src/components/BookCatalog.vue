@@ -15,7 +15,7 @@ const myActiveLoans = ref([])
 const isLoading = ref(true)
 const actionMessage = ref('')
 
-const API_BASE = 'http://localhost:5228'
+const API_BASE = 'https://poprawazmpsem6-api.onrender.com'
 
 const checkResponseStatus = (res) => {
   if (res.status === 401) {

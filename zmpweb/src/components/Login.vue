@@ -8,7 +8,7 @@ const errorMessage = ref('')
 
 const emit = defineEmits(['login-success', 'switch-to-register'])
 
-const API_BASE = 'http://localhost:5228' // Dostosuj port backendu
+const API_BASE = 'https://poprawazmpsem6-api.onrender.com'
 
 const handleLogin = async () => {
   isLoading.value = true

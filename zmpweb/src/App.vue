@@ -11,7 +11,7 @@ const token = ref('')
 const notifications = ref([])
 const catalogRefreshTrigger = ref(0)
 
-const API_BASE = 'http://localhost:5228'
+const API_BASE = 'https://poprawazmpsem6-api.onrender.com'
 let logoutTimer = null
 
 const triggerCatalogRefresh = () => {
@@ -53,7 +53,7 @@ const scheduleAutoLogout = (tokenValue) => {
 
   const remaining = expTime - Date.now()
 
-  if (remaining <= 0) {
+  if (remaining <= 0) { // Jak to spadnie do zera to
     handleSessionExpired()
   } else {
     logoutTimer = setTimeout(() => {
@@ -87,27 +87,27 @@ const logout = () => {
   currentView.value = 'catalog'
 }
 
-const setupSignalR = () => {
-  if (!token.value) return
+const setupSignalR = () => { //Stworzenie połączenia z backendem poprzez SignalR
+  if (!token.value) return // jak user nie ma tokena, to go wyrzuca
 
   const connection = new signalR.HubConnectionBuilder()
       .withUrl(`${API_BASE}/hubs/notifications?access_token=${token.value}`)
       .configureLogging(signalR.LogLevel.Information)
       .build()
 
-  // Odbieranie powiadomień indywidualnych (np. zwolnienie rezerwacji dla danej osoby)
+  // Odbieranie powiadomień indywidualnych e.g zwolnienie rezerwacji dla danej osoby
   connection.on('BookAvailable', (data) => {
     notifications.value.unshift(data.message)
     triggerCatalogRefresh()
   })
 
-  // Odbieranie powiadomień ogólnych
+  // Odbieranie powiadomień 
   connection.on('ReceiveNotification', (message) => {
     notifications.value.unshift(message)
     triggerCatalogRefresh()
   })
 
-  // Odbieranie sygnału aktualizacji katalogu w czasie rzeczywistym
+  // Odbieranie sygnału aktualizacji katalogu realtime
   connection.on('CatalogUpdated', () => {
     triggerCatalogRefresh()
   })
@@ -129,7 +129,7 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen bg-slate-50 text-slate-800">
-    <!-- Pasek nawigacyjny -->
+ 
     <header class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm">
       <div class="flex items-center space-x-2 cursor-pointer" @click="currentView = 'catalog'">
         <span class="font-bold text-xl text-indigo-600">LibraryApp</span>
@@ -158,7 +158,7 @@ onMounted(() => {
       </nav>
     </header>
 
-    <!-- Pasek powiadomień w czasie rzeczywistym -->
+
     <div v-if="notifications.length > 0" class="max-w-5xl mx-auto mt-4 px-6">
       <div v-for="(note, index) in notifications" :key="index" class="p-4 bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-xl mb-2 flex justify-between items-center">
         <span>🔔 {{ note }}</span>
@@ -166,7 +166,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Główna zawartość -->
+
     <main>
       <BookCatalog 
         v-if="currentView === 'catalog'" 

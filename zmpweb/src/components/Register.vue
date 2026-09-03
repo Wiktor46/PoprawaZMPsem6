@@ -10,7 +10,7 @@ const successMessage = ref('')
 
 const emit = defineEmits(['switch-to-login'])
 
-const API_BASE = 'http://localhost:5000'
+const API_BASE = 'https://poprawazmpsem6-api.onrender.com'
 
 const handleRegister = async () => {
   isLoading.value = true

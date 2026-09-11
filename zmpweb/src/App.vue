@@ -39,7 +39,7 @@ const getJwtExpiration = (tokenString) => {
   }
 }
 
-// Planowanie automatycznego wylogowania po wygaśnięciu tokena JWT
+//licznik przedawnienia tokena JWT
 const scheduleAutoLogout = (tokenValue) => {
   if (logoutTimer) {
     clearTimeout(logoutTimer)
@@ -63,7 +63,7 @@ const scheduleAutoLogout = (tokenValue) => {
 }
 
 const handleSessionExpired = () => {
-  notifications.value.unshift('⏰ Twoja sesja wygasła (token JWT stracił ważność). Zaloguj się ponownie.')
+  notifications.value.unshift('Twoja sesja wygasła (token JWT stracił ważność). Zaloguj się ponownie.')
   logout()
 }
 
@@ -114,13 +114,13 @@ const setupSignalR = () => { //Stworzenie połączenia z backendem poprzez Signa
 
   connection.start().catch(err => console.error('Błąd połączenia SignalR:', err))
 }
-
+//Przywracanie sesji zalogowanego użytkownika, np jakby zamknał strone albo ją odswiezył f5.
 onMounted(() => {
-  const savedToken = localStorage.getItem('jwt_token')
+  const savedToken = localStorage.getItem('jwt_token') //szczytujesz token z lokalnej pamieci
   const savedUser = localStorage.getItem('user')
-  if (savedToken && savedUser) {
+  if (savedToken && savedUser) { // jesli isniteją no to przywróć sesje
     token.value = savedToken
-    currentUser.value = JSON.parse(savedUser)
+    currentUser.value = JSON.parse(savedUser) 
     scheduleAutoLogout(savedToken)
     setupSignalR()
   }
@@ -161,7 +161,7 @@ onMounted(() => {
 
     <div v-if="notifications.length > 0" class="max-w-5xl mx-auto mt-4 px-6">
       <div v-for="(note, index) in notifications" :key="index" class="p-4 bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-xl mb-2 flex justify-between items-center">
-        <span>🔔 {{ note }}</span>
+        <span> {{ note }}</span>
         <button @click="notifications.splice(index, 1)" class="text-xs font-bold text-emerald-900">Zamknij</button>
       </div>
     </div>
